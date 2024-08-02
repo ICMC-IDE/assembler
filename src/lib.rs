@@ -1,123 +1,105 @@
-#![feature(iter_array_chunks)]
+use std::{collections::HashMap, fmt::Write, str::FromStr};
 
+use asm::parse_line;
+use ast::{Reduce, ReduceError};
+use context::Context;
 use fs::Fs;
 use wasm_bindgen::prelude::*;
 
+pub mod asm;
+pub mod ast;
+pub mod cis;
+pub mod context;
+
+pub fn parse<'c, 'i>(ctx: &'c mut Context, input: &'i str) -> Result<Box<[u16]>, ReduceError<'i>> {
+    // dbg!(&ctx);
+
+    let mut result: Vec<_> = input
+        .lines()
+        .enumerate()
+        .filter_map(|(_num, line)| parse_line(line))
+        .flatten()
+        .collect();
+
+    let mut i = 0;
+
+    ctx.address = 0;
+
+    result = result
+        .into_iter()
+        .filter_map(|statement| statement.reduce(ctx).transpose())
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let alloc_offset = ctx.address;
+
+    ctx.set_allocation_offset(alloc_offset);
+
+    loop {
+        ctx.address = 0;
+
+        result = result
+            .into_iter()
+            .filter_map(|statement| statement.reduce(ctx).transpose())
+            .collect::<Result<Vec<_>, _>>()?;
+
+        if i > 100 {
+            break;
+        }
+
+        i += 1;
+    }
+
+    let mut data = Box::new([0u16; 0x10000]);
+
+    result
+        .iter()
+        .fold(0, |acc, statement| statement.copy(data.as_mut_slice(), acc));
+
+    Ok(data)
+}
+
 #[wasm_bindgen]
 pub struct Assembly {
-    result: customasm::asm::AssemblyResult,
-}
-
-#[wasm_bindgen]
-pub struct Assembler {}
-
-struct FakeFs<'a> {
-    fs: &'a Fs,
-    filenames: Vec<String>,
-}
-
-impl<'a> From<&'a Fs> for FakeFs<'a> {
-    fn from(value: &'a Fs) -> Self {
-        Self {
-            fs: value,
-            filenames: value.files(),
-        }
-    }
-}
-
-impl<'a> customasm::util::FileServer for FakeFs<'a> {
-    fn get_handle(
-        &mut self,
-        report: &mut customasm::diagn::Report,
-        span: Option<customasm::diagn::Span>,
-        filename: &str,
-    ) -> Result<customasm::util::FileServerHandle, ()> {
-        self.filenames
-            .iter()
-            .enumerate()
-            .find(|(_index, name)| name.as_str() == filename)
-            .map(|(index, _name)| index)
-            .ok_or(())
-    }
-
-    fn get_filename(&self, file_handle: customasm::util::FileServerHandle) -> &str {
-        &self.filenames[file_handle as usize]
-    }
-
-    fn get_bytes(
-        &self,
-        report: &mut customasm::diagn::Report,
-        span: Option<customasm::diagn::Span>,
-        file_handle: customasm::util::FileServerHandle,
-    ) -> Result<Vec<u8>, ()> {
-        let filename = self.get_filename(file_handle);
-
-        self.fs.read(filename).map(Into::into).ok_or(())
-    }
-
-    fn write_bytes(
-        &mut self,
-        report: &mut customasm::diagn::Report,
-        span: Option<customasm::diagn::Span>,
-        filename: &str,
-        data: &Vec<u8>,
-    ) -> Result<(), ()> {
-        self.fs.write(filename, data.as_ref());
-
-        Ok(())
-    }
-}
-
-#[wasm_bindgen]
-impl Assembler {
-    pub fn assemble(fs: &Fs, filenames: &str) -> Result<Assembly, String> {
-        let opts = customasm::asm::AssemblyOptions::new();
-        let filenames = filenames.split(':').collect::<Vec<_>>();
-        let mut report = customasm::diagn::Report::new();
-
-        let mut fileserver = FakeFs::from(fs);
-
-        let result = customasm::asm::assemble(&mut report, &opts, &mut fileserver, &filenames);
-
-        if result.error {
-            let mut vec = Vec::new();
-            report.print_all(&mut vec, &fileserver, true);
-            return Err(String::from_utf8(vec).unwrap());
-        }
-
-        Ok(Assembly { result })
-    }
+    data: Box<[u16]>,
+    symbols: HashMap<String, Option<usize>>,
 }
 
 #[wasm_bindgen]
 impl Assembly {
     pub fn symbols(&self) -> String {
-        let decls = self.result.decls.as_ref().unwrap();
-        let defs = self.result.defs.as_ref().unwrap();
+        let mut buffer = String::new();
 
-        decls
+        let _ = self
             .symbols
-            .format(decls, defs, &mut |result, symbol_decl, name, bigint| {
-                if let customasm::util::SymbolKind::Label = symbol_decl.kind {
-                    result.push_str(name);
-                    result.push_str(&format!(" = 0x{:x}\n", bigint));
-                }
-            })
+            .keys()
+            .zip(self.symbols.values())
+            .try_for_each(|(key, value)| buffer.write_fmt(format_args!("{key} = {value:p}\n")));
+
+        buffer
     }
 
     pub fn binary(&self) -> Vec<u16> {
-        self.result
-            .output
-            .as_ref()
-            .unwrap()
-            .format_binary()
-            .into_iter()
-            .array_chunks()
-            .map(|bytes| u16::from_be_bytes(bytes))
-            .collect()
+        self.data.to_vec()
     }
 
     pub fn mif(&self) -> String {
-        self.result.output.as_ref().unwrap().format_mif()
+        mif::Mif::new(&self.data, mif::Radix::Hex, mif::Radix::Bin).to_string()
     }
+}
+
+#[wasm_bindgen]
+pub fn assemble(fs: &Fs, entry: &str, syntax: &str) -> Result<Assembly, String> {
+    let syntax = fs.read(&syntax).unwrap();
+    let input = fs.read(entry).unwrap();
+    let is = cis::InstructionSet::from_str(&syntax).map_err(|err| err.to_string())?;
+
+    let (result, symbols) = {
+        let mut ctx = Context::new(&is);
+
+        (parse(&mut ctx, &input), ctx.labels)
+    };
+
+    let data = result.map_err(|err| err.to_string())?;
+
+    Ok(Assembly { data, symbols })
 }

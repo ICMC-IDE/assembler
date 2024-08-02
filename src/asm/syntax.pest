@@ -1,0 +1,24 @@
+word           = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+number         = @{ hex_number | dec_number | oct_number | bin_number }
+hex_number     = @{ ^"0x" ~ ASCII_HEX_DIGIT+ }
+oct_number     = @{ ^"0o" ~ ASCII_OCT_DIGIT+ }
+dec_number     = @{ ^"0d" ~ ASCII_DIGIT+ | (ASCII_NONZERO_DIGIT ~ ASCII_DIGIT*) | "0" }
+bin_number     = @{ ^"0b" ~ ASCII_BIN_DIGIT+ }
+label_decl     = _{ label ~ ":" }
+label          = @{ ((word ~ subword*) | (subword+)) }
+ident          = @{ word ~ subword* }
+literal        = _{ "#" ~ (number | word | string) }
+operator       =  { "+" | "-" }
+string         = @{ PUSH("\"" | "'") ~ char* ~ POP }
+escapable_char = ${ "\\" | PEEK | "0" }
+char           = _{ !PEEK ~ (("\\" ~ escapable_char) | (!"\\" ~ ANY)) }
+line           =  { SOI ~ label_decl? ~ instruction? ~ EOI }
+const          = _{ literal | ident }
+expr           =  { (const ~ operator ~ expr) | const }
+mnemonic       = @{ word ~ subword* }
+instruction    =  { mnemonic ~ (argument ~ ("," ~ argument)*)? }
+subword        = @{ "." ~ word }
+argument       =  { string | expr }
+
+COMMENT    = _{ ";" ~ (!NEWLINE ~ ANY)* }
+WHITESPACE = _{ "\t" | " " }
