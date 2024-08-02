@@ -1,8 +1,7 @@
 use pest::iterators::Pair;
 
-use crate::{asm::Rule, context::Context};
-
 use super::{arguments::Arguments, Reduce, ReduceError, Statement};
+use crate::{asm::Rule, context::Context};
 
 #[derive(Debug)]
 pub struct Instruction<'a> {
@@ -11,15 +10,11 @@ pub struct Instruction<'a> {
 }
 
 impl<'a> Reduce for Instruction<'a> {
-    type Output = Option<Statement<'a>>;
     type Error = ReduceError<'a>;
+    type Output = Option<Statement<'a>>;
 
     fn reduce(self, ctx: &mut Context) -> Result<Self::Output, Self::Error> {
-        let mnemonics = ctx
-            .is
-            .instructions
-            .get(self.pair.as_str())
-            .map(std::ops::Deref::deref);
+        let mnemonics = ctx.is.get_instruction(self.pair.as_str());
 
         if let Some(mnemonics) = mnemonics {
             // assumes a instruction cannot have different sizes based on input

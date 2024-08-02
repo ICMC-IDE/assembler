@@ -1,11 +1,10 @@
 use pest::iterators::Pair;
 
+use super::{Reduce, ReduceError};
 use crate::{
     asm::Rule,
     context::{Argument, Context},
 };
-
-use super::{Reduce, ReduceError};
 
 #[derive(Debug, Clone)]
 pub struct Compound<'a> {
@@ -134,8 +133,8 @@ impl<'a> From<Pair<'a, Rule>> for Expr<'a> {
 }
 
 impl<'a> Reduce for Expr<'a> {
-    type Output = Self;
     type Error = ReduceError<'a>;
+    type Output = Self;
 
     fn reduce(self, ctx: &mut Context) -> Result<Self::Output, Self::Error> {
         match self {
@@ -168,7 +167,7 @@ impl<'a> Reduce for Expr<'a> {
                 }
             }
             Self::LabelRef { name, pair } => {
-                if ctx.is.symbols.contains_key(name) {
+                if ctx.is.get_symbol(name).is_some() {
                     Ok(Self::Symbol { name, pair })
                 } else if let Some(Some(address)) = ctx.labels.get(name) {
                     Ok(Self::Integer {
@@ -207,7 +206,7 @@ impl<'a> Expr<'a> {
     pub fn validate(&self, ctx: &'a Context, arg: &'a Argument) -> Result<u32, ReduceError<'a>> {
         match self {
             Self::Symbol { pair, name } => {
-                let symbol = &ctx.is.symbols[*name];
+                let symbol = &ctx.is.get_symbol(name).unwrap();
                 if symbol.tags.contains(&arg.r#type) {
                     Ok(arg.format(symbol.value as u32))
                 } else {

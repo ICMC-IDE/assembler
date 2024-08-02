@@ -38,6 +38,20 @@ pub struct InstructionSet {
     pub instructions: HashMap<String, Vec<Instruction>>,
 }
 
+impl InstructionSet {
+    pub fn get_symbol(&self, name: &str) -> Option<&Symbol> {
+        // FIXME: this allocated everytime
+        let name = name.to_ascii_lowercase();
+        self.symbols.get(&name)
+    }
+
+    pub fn get_instruction(&self, name: &str) -> Option<&[Instruction]> {
+        // FIXME: this allocated everytime
+        let name = name.to_ascii_lowercase();
+        self.instructions.get(&name).map(std::ops::Deref::deref)
+    }
+}
+
 #[derive(serde_derive::Deserialize, Debug)]
 pub struct Symbol {
     pub value: usize,
