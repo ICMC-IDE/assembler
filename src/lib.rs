@@ -73,7 +73,8 @@ impl Assembly {
             .symbols
             .keys()
             .zip(self.symbols.values())
-            .try_for_each(|(key, value)| buffer.write_fmt(format_args!("{key} = {value:p}\n")));
+            .filter_map(|(key, value)| value.map(|value| (key, value)))
+            .try_for_each(|(key, value)| buffer.write_fmt(format_args!("{key} = {value:#x}\n")));
 
         buffer
     }

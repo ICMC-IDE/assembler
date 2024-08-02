@@ -23,7 +23,10 @@ pub fn parse_line(input: &str) -> Option<impl Iterator<Item = Statement<'_>>> {
                 Rule::instruction => {
                     let mut pairs = pair.into_inner();
                     let name = pairs.next().unwrap();
-                    let is_macro = matches!(name.as_str(), "string" | "var" | "static" | "alloc");
+                    let is_macro = matches!(
+                        name.as_str().to_ascii_lowercase().as_str(),
+                        "string" | "var" | "static" | "alloc"
+                    );
                     let arguments =
                         Arguments::from(pairs.map(|pair| pair.into()).collect::<Vec<_>>());
 
