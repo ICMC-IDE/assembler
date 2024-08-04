@@ -117,9 +117,11 @@ impl<'a> From<Pair<'a, Rule>> for Expr<'a> {
                             b'0' => buffer.push(0),
                             next => buffer.push(next as u16),
                         },
-                        _ => buffer.push(chr as u16),
+                        chr => buffer.push(chr as u16),
                     }
                 }
+
+                buffer.push(0);
 
                 Self::String {
                     pair,
