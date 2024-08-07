@@ -106,9 +106,10 @@ impl<'a> From<Pair<'a, Rule>> for Expr<'a> {
                 }
             }
             Rule::string => {
-                let mut buffer = Vec::new();
                 let string = pair.as_str();
                 let string = &string[1..(string.len() - 1)];
+
+                let mut buffer = Vec::with_capacity(string.len() + 1);
                 let mut chars = string.bytes();
 
                 while let Some(chr) = chars.next() {
