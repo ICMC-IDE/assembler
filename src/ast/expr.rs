@@ -178,7 +178,11 @@ impl<'a> Reduce for Expr<'a> {
                         pair,
                     })
                 } else {
-                    Ok(Self::LabelRef { pair, name })
+                    if ctx.counter > 0 {
+                        Ok(Self::LabelRef { pair, name })
+                    } else {
+                        Err(ReduceError::UnknownIdentifier(pair))
+                    }
                 }
             }
             _ => Ok(self),

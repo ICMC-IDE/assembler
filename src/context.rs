@@ -10,6 +10,7 @@ pub struct Context<'is, 'a> {
     pub address: usize,
     pub path: Vec<&'a str>,
     pub allocation_offset: Option<usize>,
+    pub counter: u16,
 }
 
 #[derive(Debug)]
@@ -19,7 +20,7 @@ pub enum LabelError {
 }
 
 impl<'is, 'a> Context<'is, 'a> {
-    pub fn new(is: &'is InstructionSet) -> Self {
+    pub fn new(is: &'is InstructionSet, max_iter: u16) -> Self {
         Self {
             is,
             labels: HashMap::new(),
@@ -27,6 +28,7 @@ impl<'is, 'a> Context<'is, 'a> {
             address: 0,
             path: Vec::new(),
             allocation_offset: None,
+            counter: max_iter,
         }
     }
 

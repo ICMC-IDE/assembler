@@ -23,6 +23,7 @@ use crate::{
 #[derive(Debug)]
 pub enum ReduceError<'a> {
     UnknownInstruction(Pair<'a, Rule>),
+    UnknownIdentifier(Pair<'a, Rule>),
     TypeError,
     UnexpectedArgument {
         instruction: Pair<'a, Rule>,

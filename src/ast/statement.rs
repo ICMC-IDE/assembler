@@ -42,7 +42,10 @@ impl<'a> Statement<'a> {
                     index + data.len()
                 }
             }
-            _ => unreachable!(),
+            _ => {
+                println!("test");
+                0
+            }
         }
     }
 }

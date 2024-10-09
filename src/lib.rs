@@ -21,8 +21,6 @@ pub fn parse<'c, 'i>(ctx: &'c mut Context, input: &'i str) -> Result<Box<[u16]>,
         .flatten()
         .collect();
 
-    let mut i = 0;
-
     ctx.address = 0;
 
     result = result
@@ -42,11 +40,11 @@ pub fn parse<'c, 'i>(ctx: &'c mut Context, input: &'i str) -> Result<Box<[u16]>,
             .filter_map(|statement| statement.reduce(ctx).transpose())
             .collect::<Result<Vec<_>, _>>()?;
 
-        if i > 100 {
+        if ctx.counter <= 0 {
             break;
         }
 
-        i += 1;
+        ctx.counter -= 1;
     }
 
     let mut data = Box::new([0u16; 0x10000]);
@@ -95,7 +93,7 @@ pub fn assemble(fs: &Fs, entry: &str, syntax: &str) -> Result<Assembly, String> 
     let is = cis::InstructionSet::from_str(&syntax).map_err(|err| err.to_string())?;
 
     let (result, symbols) = {
-        let mut ctx = Context::new(&is);
+        let mut ctx = Context::new(&is, 100);
 
         (parse(&mut ctx, &input), ctx.labels)
     };
