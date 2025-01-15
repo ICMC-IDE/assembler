@@ -4,6 +4,8 @@ use asm::parse_line;
 use ast::{Reduce, ReduceError};
 use context::Context;
 use fs::Fs;
+
+#[cfg(target_family = "wasm")]
 use wasm_bindgen::prelude::*;
 
 pub mod asm;
@@ -56,13 +58,13 @@ pub fn parse<'c, 'i>(ctx: &'c mut Context, input: &'i str) -> Result<Box<[u16]>,
     Ok(data)
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 pub struct Assembly {
     data: Box<[u16]>,
     symbols: HashMap<String, Option<usize>>,
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 impl Assembly {
     pub fn symbols(&self) -> String {
         let mut buffer = String::new();
@@ -86,7 +88,7 @@ impl Assembly {
     }
 }
 
-#[wasm_bindgen]
+#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 pub fn assemble(fs: &Fs, entry: &str, syntax: &str) -> Result<Assembly, String> {
     let syntax = fs.read(&syntax).unwrap();
     let input = fs.read(entry).unwrap();
