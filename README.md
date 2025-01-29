@@ -11,12 +11,12 @@ If you dont know what is your target triple, please read [this](https://doc.rust
 
 ### Usage
 ```sh 
-assembler -i source.asm -s synthax.toml -o output.mif
+assembler -i <source file> -s <synthax file> -o <output file>
 ```
 For more information, use `assembler -h`
 
 ## Defining synthaxes
-The assembler synthaxes is defined in a [TOML](https://toml.io/) file containing the following tables:
+The assembler synthaxes are defined in a [TOML](https://toml.io/) file containing the following tables:
 
 ### Symbols
 Defines the synthax symbols
@@ -41,23 +41,23 @@ arguments = [
 documentation = "rx = ry"
 ```
 - value: intruction value
-- length: length of the instruction, if greater then the length of value, the remaining length will be assumed to be zeros
+- length: length of the instruction, if greater than the length of value, the remaining length will be assumed to be zeros
 - arguments: intruction arguments
   - type: argument type, can be a data type or a symbol tag
   - index: argument index
   - offset: argument starting offset, with 0 being the least significant bit
-  - length: argument length, if greater then the length of argument value, the remaining length will be assumed to be zeros
+  - length: argument length, if greater than the length of argument value, the remaining length will be assumed to be zeros
 - documentation: optional key, used for documenting instructions
 
 ### Metadata
-Optional table, used for storing addtional information about the synthax
+Optional table, used for storing additional information about the synthax
 ```toml
 [metadata]
 name = "ICMC"
 type = "instruction-set"
 ```
 ## WebAssembly
-This project supports packaging for WebAssembly through [wasm-pack](https://github.com/rustwasm/wasm-pack)
+This project supports packaging for WebAssembly using [wasm-pack](https://github.com/rustwasm/wasm-pack)
 
 ### Building
 ```sh
