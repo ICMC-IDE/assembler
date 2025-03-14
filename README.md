@@ -11,15 +11,15 @@ If you dont know what is your target triple, please read [this](https://doc.rust
 
 ### Usage
 ```sh 
-assembler -i <source file> -s <synthax file> -o <output file>
+assembler -i <source file> -s <syntax file> -o <output file>
 ```
 For more information, use `assembler -h`
 
-## Defining synthaxes
-The assembler synthaxes are defined in a [TOML](https://toml.io/) file containing the following tables:
+## Defining syntaxes
+The assembler syntaxes are defined in a [TOML](https://toml.io/) file containing the following tables:
 
 ### Symbols
-Defines the synthax symbols
+Defines the syntax symbols
 ```toml
 [symbols]
 r0 = { value = 0, tags = ["reg"] }
@@ -29,7 +29,7 @@ sp = { value = 1, tags = ["sp"] }
 - tags: sumbol tags, used to separate symbols and as instructions argument types
 
 ### Instructions
-Defines the structure of the synthax instructions
+Defines the structure of the syntax instructions
 ```toml
 [[instructions.mov]]
 value = 0b1100110000000000
@@ -50,7 +50,7 @@ documentation = "rx = ry"
 - documentation: optional key, used for documenting instructions
 
 ### Metadata
-Optional table, used for storing additional information about the synthax
+Optional table, used for storing additional information about the syntax
 ```toml
 [metadata]
 name = "ICMC"
