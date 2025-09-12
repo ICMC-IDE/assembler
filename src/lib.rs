@@ -104,3 +104,18 @@ pub fn assemble(fs: &Fs, entry: &str, syntax: &str) -> Result<Assembly, String> 
 
     Ok(Assembly { data, symbols })
 }
+
+#[cfg_attr(target_family = "wasm", wasm_bindgen)]
+pub fn assemble_from_buf(input: &str, syntax: &str) -> Result<Assembly, String> {
+    let is = cis::InstructionSet::from_str(&syntax).map_err(|err| err.to_string())?;
+
+    let (result, symbols) = {
+        let mut ctx = Context::new(&is, 100);
+
+        (parse(&mut ctx, &input), ctx.labels)
+    };
+
+    let data = result.map_err(|err| err.to_string())?;
+
+    Ok(Assembly { data, symbols })
+}
