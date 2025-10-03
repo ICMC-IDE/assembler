@@ -177,12 +177,10 @@ impl<'a> Reduce for Expr<'a> {
                         value: *address,
                         pair,
                     })
+                } else if ctx.counter > 0 {
+                    Ok(Self::LabelRef { pair, name })
                 } else {
-                    if ctx.counter > 0 {
-                        Ok(Self::LabelRef { pair, name })
-                    } else {
-                        Err(ReduceError::UnknownIdentifier(pair))
-                    }
+                    Err(ReduceError::UnknownIdentifier(pair))
                 }
             }
             _ => Ok(self),

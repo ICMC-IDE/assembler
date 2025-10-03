@@ -28,7 +28,7 @@ pub struct Argument {
 impl Argument {
     #[inline(always)]
     pub fn format(&self, value: u32) -> u32 {
-        (value as u32 & (1u32 << self.length).wrapping_sub(1)) << self.offset
+        (value & (1u32 << self.length).wrapping_sub(1)) << self.offset
     }
 }
 

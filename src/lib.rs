@@ -1,25 +1,18 @@
-use std::{collections::HashMap, fmt::Write, str::FromStr};
+use std::{collections::HashMap, fmt::Write, path::Path, str::FromStr};
 
 use asm::parse_line;
 use ast::{Reduce, ReduceError};
 use context::Context;
-use fs::Fs;
-
-#[cfg(target_family = "wasm")]
-use wasm_bindgen::prelude::*;
 
 pub mod asm;
 pub mod ast;
 pub mod cis;
 pub mod context;
 
-pub fn parse<'c, 'i>(ctx: &'c mut Context, input: &'i str) -> Result<Box<[u16]>, ReduceError<'i>> {
-    // dbg!(&ctx);
-
+pub fn parse<'i>(ctx: &mut Context, input: &'i str) -> Result<Box<[u16]>, ReduceError<'i>> {
     let mut result: Vec<_> = input
         .lines()
-        .enumerate()
-        .filter_map(|(_num, line)| parse_line(line))
+        .filter_map(|line| parse_line(line))
         .flatten()
         .collect();
 
@@ -42,7 +35,7 @@ pub fn parse<'c, 'i>(ctx: &'c mut Context, input: &'i str) -> Result<Box<[u16]>,
             .filter_map(|statement| statement.reduce(ctx).transpose())
             .collect::<Result<Vec<_>, _>>()?;
 
-        if ctx.counter <= 0 {
+        if ctx.counter == 0 {
             break;
         }
 
@@ -58,13 +51,11 @@ pub fn parse<'c, 'i>(ctx: &'c mut Context, input: &'i str) -> Result<Box<[u16]>,
     Ok(data)
 }
 
-#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 pub struct Assembly {
     data: Box<[u16]>,
     symbols: HashMap<String, Option<usize>>,
 }
 
-#[cfg_attr(target_family = "wasm", wasm_bindgen)]
 impl Assembly {
     pub fn symbols(&self) -> String {
         let mut buffer = String::new();
@@ -88,31 +79,23 @@ impl Assembly {
     }
 }
 
-#[cfg_attr(target_family = "wasm", wasm_bindgen)]
-pub fn assemble(fs: &Fs, entry: &str, syntax: &str) -> Result<Assembly, String> {
-    let syntax = fs.read(&syntax).unwrap();
-    let input = fs.read(entry).unwrap();
-    let is = cis::InstructionSet::from_str(&syntax).map_err(|err| err.to_string())?;
+pub fn assemble(entry: impl AsRef<Path>, syntax: impl AsRef<Path>) -> Result<Assembly, String> {
+    let entry = std::fs::read_to_string(entry).unwrap();
+    let syntax = std::fs::read_to_string(syntax).unwrap();
 
-    let (result, symbols) = {
-        let mut ctx = Context::new(&is, 100);
-
-        (parse(&mut ctx, &input), ctx.labels)
-    };
-
-    let data = result.map_err(|err| err.to_string())?;
-
-    Ok(Assembly { data, symbols })
+    assemble_from_buf(entry, syntax)
 }
 
-#[cfg_attr(target_family = "wasm", wasm_bindgen)]
-pub fn assemble_from_buf(input: &str, syntax: &str) -> Result<Assembly, String> {
-    let is = cis::InstructionSet::from_str(&syntax).map_err(|err| err.to_string())?;
+pub fn assemble_from_buf(
+    input: impl AsRef<str>,
+    syntax: impl AsRef<str>,
+) -> Result<Assembly, String> {
+    let is = cis::InstructionSet::from_str(syntax.as_ref()).map_err(|err| err.to_string())?;
 
     let (result, symbols) = {
         let mut ctx = Context::new(&is, 100);
 
-        (parse(&mut ctx, &input), ctx.labels)
+        (parse(&mut ctx, input.as_ref()), ctx.labels)
     };
 
     let data = result.map_err(|err| err.to_string())?;

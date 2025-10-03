@@ -11,8 +11,8 @@ pub use arguments::*;
 pub use expr::*;
 pub use instruction::*;
 pub use label::*;
-use pest::iterators::Pair;
 pub use r#macro::*;
+use pest::iterators::Pair;
 pub use statement::*;
 
 use crate::{

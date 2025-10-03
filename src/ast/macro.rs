@@ -2,7 +2,7 @@ use pest::iterators::Pair;
 
 use crate::{asm::Rule, context::Context};
 
-use super::{arguments::Arguments, Expr, Reduce, ReduceError, Statement};
+use super::{Expr, Reduce, ReduceError, Statement, arguments::Arguments};
 
 #[derive(Debug)]
 pub struct Macro<'a> {

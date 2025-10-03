@@ -1,6 +1,6 @@
 use pest::iterators::Pair;
 
-use super::{arguments::Arguments, Reduce, ReduceError, Statement};
+use super::{Reduce, ReduceError, Statement, arguments::Arguments};
 use crate::{asm::Rule, context::Context};
 
 #[derive(Debug)]
