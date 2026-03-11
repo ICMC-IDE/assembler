@@ -39,10 +39,14 @@ pub enum Expr<'a> {
 impl<'a> Expr<'a> {
     pub fn dependencies(&self) -> Vec<&str> {
         match self {
-            Self::Compound(Compound { lhs, rhs, .. }) => {
-                Iterator::chain(lhs.dependencies().into_iter(), rhs.dependencies()).collect()
+            Self::Compound(Compound { lhs, rhs, .. }) => Iterator::chain(
+                lhs.dependencies().into_iter(),
+                rhs.dependencies(),
+            )
+            .collect(),
+            Self::LabelRef { name, .. } | Self::Symbol { name, .. } => {
+                [*name].into()
             }
-            Self::LabelRef { name, .. } | Self::Symbol { name, .. } => [*name].into(),
             _ => [].into(),
         }
     }
@@ -152,15 +156,17 @@ impl<'a> Reduce for Expr<'a> {
 
                 // Reduces expressions to integers
                 match (lhs, rhs, operator) {
-                    (Self::Integer { value: x, .. }, Self::Integer { value: y, .. }, op) => {
-                        Ok(Self::Integer {
-                            value: match op {
-                                Operator::Add => x.wrapping_add(y),
-                                Operator::Sub => x.wrapping_sub(y),
-                            },
-                            pair,
-                        })
-                    }
+                    (
+                        Self::Integer { value: x, .. },
+                        Self::Integer { value: y, .. },
+                        op,
+                    ) => Ok(Self::Integer {
+                        value: match op {
+                            Operator::Add => x.wrapping_add(y),
+                            Operator::Sub => x.wrapping_sub(y),
+                        },
+                        pair,
+                    }),
                     (lhs, rhs, operator) => Ok(Self::Compound(Compound {
                         pair,
                         lhs: Box::new(lhs),
@@ -189,8 +195,12 @@ impl<'a> Reduce for Expr<'a> {
 
     fn is_reduced(&self) -> bool {
         match self {
-            Self::Integer { .. } | Self::String { .. } | Self::Symbol { .. } => true,
-            Self::Compound(Compound { lhs, rhs, .. }) => lhs.is_reduced() && rhs.is_reduced(),
+            Self::Integer { .. }
+            | Self::String { .. }
+            | Self::Symbol { .. } => true,
+            Self::Compound(Compound { lhs, rhs, .. }) => {
+                lhs.is_reduced() && rhs.is_reduced()
+            }
             _ => false,
         }
     }
@@ -208,7 +218,11 @@ impl<'a> Expr<'a> {
         }
     }
 
-    pub fn validate(&self, ctx: &'a Context, arg: &'a Argument) -> Result<u32, ReduceError<'a>> {
+    pub fn validate(
+        &self,
+        ctx: &'a Context,
+        arg: &'a Argument,
+    ) -> Result<u32, ReduceError<'a>> {
         match self {
             Self::Symbol { pair, name } => {
                 let symbol = &ctx.is.get_symbol(name).unwrap();
@@ -217,13 +231,19 @@ impl<'a> Expr<'a> {
                 } else {
                     Err(ReduceError::ExpectedType {
                         argument: pair.clone(),
-                        expected: symbol.tags.iter().map(std::ops::Deref::deref).collect(),
+                        expected: symbol
+                            .tags
+                            .iter()
+                            .map(std::ops::Deref::deref)
+                            .collect(),
                         found: &arg.r#type,
                     })
                 }
             }
             Self::Integer { value, .. } => {
-                if let Some((kind, _bits)) = arg.r#type.split_once(|c: char| c.is_ascii_digit()) {
+                if let Some((kind, _bits)) =
+                    arg.r#type.split_once(|c: char| c.is_ascii_digit())
+                {
                     // let size = bits.parse().unwrap();
                     let value = match kind {
                         "u" | "i" | "ptr" => *value as u16,
@@ -236,7 +256,9 @@ impl<'a> Expr<'a> {
                 }
             }
             Self::String { value, .. } => {
-                if let Some((kind, _bits)) = arg.r#type.split_once(|c: char| c.is_ascii_digit()) {
+                if let Some((kind, _bits)) =
+                    arg.r#type.split_once(|c: char| c.is_ascii_digit())
+                {
                     // let size = bits.parse().unwrap();
                     let value = match kind {
                         "u" | "i" | "ptr" => value[0],
@@ -248,7 +270,9 @@ impl<'a> Expr<'a> {
                     unimplemented!()
                 }
             }
-            expr => unimplemented!("Not implemented for expr of type {expr:#?} and {arg:#?}"),
+            expr => unimplemented!(
+                "Not implemented for expr of type {expr:#?} and {arg:#?}"
+            ),
         }
     }
 }

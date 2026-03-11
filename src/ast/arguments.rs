@@ -60,7 +60,10 @@ impl<'a> Arguments<'a> {
             Ordering::Greater => Err(ArgumentError::Unexpected {
                 expected: n,
                 found: m,
-                arguments: self.expr_list[n..].iter().map(|arg| arg.pair()).collect(), // FIXME: this creates a copy of the array
+                arguments: self.expr_list[n..]
+                    .iter()
+                    .map(|arg| arg.pair())
+                    .collect(), // FIXME: this creates a copy of the array
             }),
         }
     }
@@ -80,11 +83,13 @@ where
 impl<'a> ArgumentError<'a> {
     pub fn to_reduce_err(self, pair: Pair<'a, Rule>) -> ReduceError<'a> {
         match self {
-            Self::Expected { expected, found } => ReduceError::ExpectedArgument {
-                instruction: pair,
-                expected,
-                found,
-            },
+            Self::Expected { expected, found } => {
+                ReduceError::ExpectedArgument {
+                    instruction: pair,
+                    expected,
+                    found,
+                }
+            }
             Self::Unexpected {
                 expected,
                 found,

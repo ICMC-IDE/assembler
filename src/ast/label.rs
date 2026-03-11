@@ -18,7 +18,9 @@ impl<'a> Reduce for Label<'a> {
 
         match ctx.register_label(label, self.registered) {
             Ok(_) => Ok(None),
-            Err(_error) => Err(ReduceError::LabelRedeclaration { label: self.pair }),
+            Err(_error) => {
+                Err(ReduceError::LabelRedeclaration { label: self.pair })
+            }
         }
     }
 }

@@ -27,8 +27,9 @@ pub fn parse_line(input: &str) -> Option<impl Iterator<Item = Statement<'_>>> {
                         name.as_str().to_ascii_lowercase().as_str(),
                         "string" | "var" | "static" | "alloc"
                     );
-                    let arguments =
-                        Arguments::from(pairs.map(|pair| pair.into()).collect::<Vec<_>>());
+                    let arguments = Arguments::from(
+                        pairs.map(|pair| pair.into()).collect::<Vec<_>>(),
+                    );
 
                     if is_macro {
                         Statement::Macro(Macro {

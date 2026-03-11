@@ -35,7 +35,8 @@ impl<'a> Statement<'a> {
         match self {
             Self::Data(data, offset) => {
                 if let Some(address) = *offset {
-                    buffer[address..(address + data.len())].copy_from_slice(data);
+                    buffer[address..(address + data.len())]
+                        .copy_from_slice(data);
                     index
                 } else {
                     buffer[index..(index + data.len())].copy_from_slice(data);

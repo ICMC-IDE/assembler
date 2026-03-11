@@ -24,7 +24,7 @@ use crate::{
 pub enum ReduceError<'a> {
     UnknownInstruction(Pair<'a, Rule>),
     UnknownIdentifier(Pair<'a, Rule>),
-    TypeError,
+    TypeError(Pair<'a, Rule>),
     UnexpectedArgument {
         instruction: Pair<'a, Rule>,
         arguments: Vec<Pair<'a, Rule>>,

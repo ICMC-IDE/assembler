@@ -42,7 +42,7 @@ impl<'a> Reduce for Macro<'a> {
                     ctx.advance(value.len());
                     Ok(Some(Statement::Data(value, None)))
                 }
-                _ => Err(ReduceError::TypeError),
+                _ => Err(ReduceError::TypeError(self.pair)),
             },
             "var" => match arguments.expr_list.pop().unwrap() {
                 Expr::Integer { value, .. } => Ok(Some(Statement::Data(
@@ -54,33 +54,47 @@ impl<'a> Reduce for Macro<'a> {
                     },
                     None,
                 ))),
-                _ => Err(ReduceError::TypeError),
+                _ => Err(ReduceError::TypeError(self.pair)),
             },
             "alloc" => match (
                 arguments.expr_list.pop().unwrap(),
                 arguments.expr_list.pop().unwrap(),
             ) {
-                (Expr::Integer { value, .. }, Expr::LabelRef { name, pair }) => {
-                    ctx.allocate(name, Some(value), false)
-                        .map_err(|err| ReduceError::from_label_err(err, pair))?;
+                (
+                    Expr::Integer { value, .. },
+                    Expr::LabelRef { name, pair },
+                ) => {
+                    ctx.allocate(name, Some(value), false).map_err(|err| {
+                        ReduceError::from_label_err(err, pair)
+                    })?;
 
                     Ok(None)
                 }
-                _ => Err(ReduceError::TypeError),
+                _ => Err(ReduceError::TypeError(self.pair)),
             },
-            "static" => match (&arguments.expr_list[1], &arguments.expr_list[0]) {
-                (Expr::Integer { value, .. }, Expr::Integer { value: offset, .. }) => Ok(Some(
-                    Statement::Data(Box::new([*value as u16]), Some(*offset)),
-                )),
-                (Expr::String { value, .. }, Expr::Integer { value: offset, .. }) => {
-                    Ok(Some(Statement::Data(Box::new([value[0]]), Some(*offset))))
+            "static" => {
+                match (&arguments.expr_list[1], &arguments.expr_list[0]) {
+                    (
+                        Expr::Integer { value, .. },
+                        Expr::Integer { value: offset, .. },
+                    ) => Ok(Some(Statement::Data(
+                        Box::new([*value as u16]),
+                        Some(*offset),
+                    ))),
+                    (
+                        Expr::String { value, .. },
+                        Expr::Integer { value: offset, .. },
+                    ) => Ok(Some(Statement::Data(
+                        Box::new([value[0]]),
+                        Some(*offset),
+                    ))),
+                    _ => Ok(Some(Statement::Macro(Self {
+                        is_valid: true,
+                        arguments,
+                        ..self
+                    }))),
                 }
-                _ => Ok(Some(Statement::Macro(Self {
-                    is_valid: true,
-                    arguments,
-                    ..self
-                }))),
-            },
+            }
             _ => unreachable!(),
         }
     }

@@ -32,12 +32,12 @@ impl<'a> Reduce for Instruction<'a> {
                             .map_err(|err| err.to_reduce_err(self.pair.clone()))
                             .inspect_err(|e| err = e.clone())?;
 
-                        self.arguments
-                            .iter()
-                            .zip(&mnemonic.arguments)
-                            .try_fold(mnemonic.value, |acc, (expr, arg)| {
+                        self.arguments.iter().zip(&mnemonic.arguments).try_fold(
+                            mnemonic.value,
+                            |acc, (expr, arg)| {
                                 expr.validate(ctx, arg).map(|value| value | acc)
-                            })
+                            },
+                        )
                     })
                     .collect::<Vec<Result<_, ReduceError>>>();
 
@@ -50,7 +50,7 @@ impl<'a> Reduce for Instruction<'a> {
                         .collect::<Vec<u16>>();
                     Ok(Some(Statement::Data(data.into_boxed_slice(), None)))
                 } else {
-                    return Err(err)
+                    Err(err)
                 }
             } else {
                 let arguments = self.arguments.reduce(ctx)?;
