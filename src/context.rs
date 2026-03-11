@@ -2,7 +2,7 @@ use std::{collections::HashMap, error::Error, fmt::Display};
 
 pub use crate::cis::*;
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct Context<'is, 'a> {
     pub is: &'is InstructionSet,
     pub labels: HashMap<String, Option<usize>>,

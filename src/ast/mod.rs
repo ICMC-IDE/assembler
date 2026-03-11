@@ -20,7 +20,7 @@ use crate::{
     context::{Context, LabelError},
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum ReduceError<'a> {
     UnknownInstruction(Pair<'a, Rule>),
     UnknownIdentifier(Pair<'a, Rule>),
@@ -44,6 +44,9 @@ pub enum ReduceError<'a> {
     LabelRedeclaration {
         label: Pair<'a, Rule>,
     },
+    InvalidLabel {
+        label: Pair<'a, Rule>,
+    },
 }
 
 pub trait Reduce {
@@ -65,9 +68,7 @@ impl<'a> ReduceError<'a> {
     pub fn from_label_err(err: LabelError, label: Pair<'a, Rule>) -> Self {
         match err {
             LabelError::Unavailable => Self::LabelRedeclaration { label },
-            LabelError::InvalidLabel => {
-                todo!()
-            }
+            LabelError::InvalidLabel => Self::InvalidLabel { label },
         }
     }
 }

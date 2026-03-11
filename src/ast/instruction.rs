@@ -21,13 +21,16 @@ impl<'a> Reduce for Instruction<'a> {
             let size = mnemonics[0].length / 16;
             ctx.address += size;
 
+            let mut err = ReduceError::UnknownInstruction(self.pair.clone());
+
             if self.is_reduced() {
                 let result = mnemonics
-                    .iter()
+                    .into_iter()
                     .map(|mnemonic| {
                         self.arguments
                             .validate_argc(mnemonic.argc())
-                            .map_err(|err| err.to_reduce_err(self.pair.clone()))?;
+                            .map_err(|err| err.to_reduce_err(self.pair.clone()))
+                            .inspect_err(|e| err = e.clone())?;
 
                         self.arguments
                             .iter()
@@ -47,7 +50,7 @@ impl<'a> Reduce for Instruction<'a> {
                         .collect::<Vec<u16>>();
                     Ok(Some(Statement::Data(data.into_boxed_slice(), None)))
                 } else {
-                    todo!()
+                    return Err(err)
                 }
             } else {
                 let arguments = self.arguments.reduce(ctx)?;
