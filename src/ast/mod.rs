@@ -38,8 +38,8 @@ pub enum ReduceError<'a> {
     },
     ExpectedType {
         argument: Pair<'a, Rule>,
-        expected: Vec<&'a str>,
-        found: &'a str,
+        expected: Vec<String>,
+        found: String,
     },
     LabelRedeclaration {
         label: Pair<'a, Rule>,

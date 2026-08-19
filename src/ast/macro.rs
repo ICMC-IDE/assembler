@@ -42,6 +42,15 @@ impl<'a> Reduce for Macro<'a> {
                     ctx.advance(value.len());
                     Ok(Some(Statement::Data(value, None)))
                 }
+                expr @ Expr::LabelRef { .. } => {
+                    Ok(Some(Statement::Macro(Self {
+                        is_valid: true,
+                        arguments: Arguments {
+                            expr_list: vec![expr],
+                        },
+                        ..self
+                    })))
+                }
                 _ => Err(ReduceError::TypeError(self.pair)),
             },
             "var" => match arguments.expr_list.pop().unwrap() {
@@ -54,24 +63,45 @@ impl<'a> Reduce for Macro<'a> {
                     },
                     None,
                 ))),
-                _ => Err(ReduceError::TypeError(self.pair)),
-            },
-            "alloc" => match (
-                arguments.expr_list.pop().unwrap(),
-                arguments.expr_list.pop().unwrap(),
-            ) {
-                (
-                    Expr::Integer { value, .. },
-                    Expr::LabelRef { name, pair },
-                ) => {
-                    ctx.allocate(name, Some(value), false).map_err(|err| {
-                        ReduceError::from_label_err(err, pair)
-                    })?;
-
-                    Ok(None)
+                expr @ Expr::LabelRef { .. } => {
+                    Ok(Some(Statement::Macro(Self {
+                        is_valid: true,
+                        arguments: Arguments {
+                            expr_list: vec![expr],
+                        },
+                        ..self
+                    })))
                 }
                 _ => Err(ReduceError::TypeError(self.pair)),
             },
+            "alloc" => {
+                let size = arguments.expr_list.pop().unwrap();
+                let name = arguments.expr_list.pop().unwrap();
+
+                match (size, name) {
+                    (
+                        Expr::Integer { value, .. },
+                        Expr::LabelRef { name, pair },
+                    ) => {
+                        ctx.allocate(name, Some(value), false).map_err(
+                            |err| ReduceError::from_label_err(err, pair),
+                        )?;
+
+                        Ok(None)
+                    }
+                    (
+                        size @ Expr::LabelRef { .. },
+                        name @ Expr::LabelRef { .. },
+                    ) => Ok(Some(Statement::Macro(Self {
+                        is_valid: true,
+                        arguments: Arguments {
+                            expr_list: vec![name, size],
+                        },
+                        ..self
+                    }))),
+                    _ => Err(ReduceError::TypeError(self.pair)),
+                }
+            }
             "static" => {
                 match (&arguments.expr_list[1], &arguments.expr_list[0]) {
                     (
@@ -88,11 +118,14 @@ impl<'a> Reduce for Macro<'a> {
                         Box::new([value[0]]),
                         Some(*offset),
                     ))),
-                    _ => Ok(Some(Statement::Macro(Self {
-                        is_valid: true,
-                        arguments,
-                        ..self
-                    }))),
+                    (Expr::LabelRef { .. }, _) | (_, Expr::LabelRef { .. }) => {
+                        Ok(Some(Statement::Macro(Self {
+                            is_valid: true,
+                            arguments,
+                            ..self
+                        })))
+                    }
+                    _ => Err(ReduceError::TypeError(self.pair)),
                 }
             }
             _ => unreachable!(),

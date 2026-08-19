@@ -167,6 +167,9 @@ impl<'a> Reduce for Expr<'a> {
                         },
                         pair,
                     }),
+                    (lhs, rhs, _) if lhs.is_reduced() && rhs.is_reduced() => {
+                        Err(ReduceError::TypeError(pair))
+                    }
                     (lhs, rhs, operator) => Ok(Self::Compound(Compound {
                         pair,
                         lhs: Box::new(lhs),
@@ -220,8 +223,8 @@ impl<'a> Expr<'a> {
 
     pub fn validate(
         &self,
-        ctx: &'a Context,
-        arg: &'a Argument,
+        ctx: &Context,
+        arg: &Argument,
     ) -> Result<u32, ReduceError<'a>> {
         match self {
             Self::Symbol { pair, name } => {
@@ -231,48 +234,47 @@ impl<'a> Expr<'a> {
                 } else {
                     Err(ReduceError::ExpectedType {
                         argument: pair.clone(),
-                        expected: symbol
-                            .tags
-                            .iter()
-                            .map(std::ops::Deref::deref)
-                            .collect(),
-                        found: &arg.r#type,
+                        expected: symbol.tags.clone(),
+                        found: arg.r#type.clone(),
                     })
                 }
             }
-            Self::Integer { value, .. } => {
+            Self::Integer { pair, value, .. } => {
                 if let Some((kind, _bits)) =
                     arg.r#type.split_once(|c: char| c.is_ascii_digit())
                 {
                     // let size = bits.parse().unwrap();
                     let value = match kind {
                         "u" | "i" | "ptr" => *value as u16,
-                        _ => unimplemented!(),
+                        _ => return Err(ReduceError::TypeError(pair.clone())),
                     };
 
                     Ok(arg.format(value as u32))
                 } else {
-                    unimplemented!()
+                    Err(ReduceError::TypeError(pair.clone()))
                 }
             }
-            Self::String { value, .. } => {
+            Self::String { pair, value, .. } => {
                 if let Some((kind, _bits)) =
                     arg.r#type.split_once(|c: char| c.is_ascii_digit())
                 {
                     // let size = bits.parse().unwrap();
                     let value = match kind {
                         "u" | "i" | "ptr" => value[0],
-                        _ => unimplemented!(),
+                        _ => return Err(ReduceError::TypeError(pair.clone())),
                     };
 
                     Ok(arg.format(value as u32))
                 } else {
-                    unimplemented!()
+                    Err(ReduceError::TypeError(pair.clone()))
                 }
             }
-            expr => unimplemented!(
-                "Not implemented for expr of type {expr:#?} and {arg:#?}"
-            ),
+            Self::Compound(_) | Self::LabelRef { .. } => {
+                Err(ReduceError::TypeError(self.pair()))
+            }
+            Self::Eoi => {
+                unreachable!("Eoi")
+            }
         }
     }
 }

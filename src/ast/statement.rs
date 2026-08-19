@@ -43,9 +43,10 @@ impl<'a> Statement<'a> {
                     index + data.len()
                 }
             }
-            _ => {
-                println!("test");
-                0
+            Self::Label(_) | Self::Instruction(_) | Self::Macro(_) => {
+                unreachable!(
+                    "reduce() should've parsed the statement into Data before copying"
+                )
             }
         }
     }

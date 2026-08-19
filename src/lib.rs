@@ -60,7 +60,7 @@ impl<'a> std::fmt::Display for AsmError<'a> {
                 let expected_types = expected.join(" ");
                 ("Expected Type(s)", expected_types.as_str().to_owned())
             }
-            ReduceError::LabelRedeclaration { label } => (
+            ReduceError::LabelRedeclaration { label } => ( /* todo: tell redeclaration line */
                 "Label Redeclaration. Already declared",
                 label.as_str().to_owned(),
             ),
@@ -107,8 +107,12 @@ impl<'a> AsmError<'a> {
             }
         };
 
-        let line = (input.lines().position(|l| l == span.get_input()).unwrap()
-            + 1) as u32;
+        /* find where the error happened (line number) */
+        let line_text = span.get_input();
+        let offset = line_text.as_ptr() as usize - input.as_ptr() as usize;
+        let line =
+            (input[..offset].bytes().filter(|&b| b == b'\n').count() + 1)
+                as u32;
 
         AsmError {
             err,

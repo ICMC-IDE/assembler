@@ -43,7 +43,7 @@ fn main() {
     // input_reader.read_to_end(&mut buffer).unwrap();
     // fs.write("entry.asm", &buffer).unwrap();
     // buffer.clear();
-
+    
     // let mut synthax_reader = cli.synthax.lock();
     // synthax_reader.read_to_end(&mut buffer).unwrap();
     // fs.write("synthax.toml", &buffer).unwrap();
